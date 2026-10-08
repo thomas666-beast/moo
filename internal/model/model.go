@@ -21,7 +21,11 @@ type FieldSpec struct {
 	ReadOnly bool
 	Skip     bool
 	Required bool
-	Default  string // raw Go expression from `default=...`, empty if unset
+	Default  string
+	Min      *int
+	Max      *int
+	Enum     []string
+	Match    string
 }
 
 // WritableFields returns fields that should get a With<Name> option.

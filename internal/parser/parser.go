@@ -91,6 +91,10 @@ func parseStruct(name string, st *ast.StructType) (*model.StructSpec, bool, erro
 				Skip:     opts.Skip,
 				Required: opts.Required,
 				Default:  opts.Default,
+				Min:      opts.Min,
+				Max:      opts.Max,
+				Enum:     opts.Enum,
+				Match:    opts.Match,
 			}
 			if !ident.IsExported() {
 				fs.Skip = true

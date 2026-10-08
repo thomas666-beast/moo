@@ -8,6 +8,10 @@
 //	"readonly"            -> ReadOnly = true
 //	"required"            -> Required = true
 //	"default=<expr>"      -> Default = "<expr>"   (raw, unparsed)
+//	"min=<n>"             -> Min = n
+//	"max=<n>"             -> Max = n
+//	"enum=a|b|c"          -> Enum = [a b c]
+//	"match=email"         -> Match = "email"
 //
 // Multiple keys are separated by ";". Unknown keys are an error so typos
 // surface early.
@@ -15,6 +19,7 @@ package tag
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -26,6 +31,10 @@ type Options struct {
 	// Default is the raw right-hand side of `default=...`, unparsed. The
 	// generator is responsible for interpreting it as a Go expression.
 	Default string
+	Min     *int
+	Max     *int
+	Enum    []string
+	Match   string
 }
 
 // Parse parses a raw tag value. It returns an error for malformed input or
@@ -66,9 +75,49 @@ func Parse(raw string) (Options, error) {
 				return opts, fmt.Errorf("moo: default requires a value: %q", part)
 			}
 			opts.Default = strings.TrimSpace(val)
+		case "min":
+			n, err := getInt(key, val, hasVal)
+			if err != nil {
+				return opts, err
+			}
+			opts.Min = &n
+		case "max":
+			n, err := getInt(key, val, hasVal)
+			if err != nil {
+				return opts, err
+			}
+			opts.Max = &n
+		case "enum":
+			if !hasVal || strings.TrimSpace(val) == "" {
+				return opts, fmt.Errorf("moo: enum requires a value: %q", part)
+			}
+			items := strings.Split(val, "|")
+			for i := range items {
+				items[i] = strings.TrimSpace(items[i])
+				if items[i] == "" {
+					return opts, fmt.Errorf("moo: enum has empty item: %q", part)
+				}
+			}
+			opts.Enum = items
+		case "match":
+			if !hasVal || strings.TrimSpace(val) == "" {
+				return opts, fmt.Errorf("moo: match requires a value: %q", part)
+			}
+			opts.Match = strings.TrimSpace(val)
 		default:
 			return opts, fmt.Errorf("unknown moo option: %q", part)
 		}
 	}
 	return opts, nil
+}
+
+func getInt(key, val string, hasVal bool) (int, error) {
+	if !hasVal {
+		return 0, fmt.Errorf("moo: %s requires a value", key)
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(val))
+	if err != nil {
+		return 0, fmt.Errorf("moo: %s must be an integer: %q", key, val)
+	}
+	return n, nil
 }
