@@ -16,10 +16,12 @@ type StructSpec struct {
 
 // FieldSpec describes one field of a struct.
 type FieldSpec struct {
-	Name     string // Go field name, e.g. "X"
-	GoType   string // rendered Go type, e.g. "int" or "[]string"
-	ReadOnly bool   // if true, no With<Name> option is generated
-	Skip     bool   // if true, field is ignored entirely
+	Name     string
+	GoType   string
+	ReadOnly bool
+	Skip     bool
+	Required bool
+	Default  string // raw Go expression from `default=...`, empty if unset
 }
 
 // WritableFields returns fields that should get a With<Name> option.
