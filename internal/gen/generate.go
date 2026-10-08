@@ -34,6 +34,8 @@ func Generate(f *model.File) ([]byte, error) {
 		"isString":      func(f *model.FieldSpec) bool { return f.GoType == "string" },
 		"isNumeric":     func(f *model.FieldSpec) bool { return isNumericType(f.GoType) },
 		"isSliceOrMap":  func(f *model.FieldSpec) bool { return isSliceOrMapType(f.GoType) },
+		"isSlice":       func(f *model.FieldSpec) bool { return strings.HasPrefix(f.GoType, "[]") },
+		"isMap":         func(f *model.FieldSpec) bool { return strings.HasPrefix(f.GoType, "map[") },
 		"isPointer":     func(f *model.FieldSpec) bool { return strings.HasPrefix(f.GoType, "*") },
 		"zero":          func(f *model.FieldSpec) string { return zeroValue(f.GoType) },
 		"hasMatch":      func(f *model.FieldSpec) bool { return f.Match != "" },
@@ -98,6 +100,9 @@ func zeroValue(t string) string {
 
 func collectImports(f *model.File) []string {
 	set := map[string]bool{"fmt": true}
+	if len(f.Structs) > 0 {
+		set["strings"] = true
+	}
 	for _, s := range f.Structs {
 		for _, fl := range s.Fields {
 			if fl.Match == "email" {
@@ -214,5 +219,47 @@ func (x *{{$s.Name}}) Validate() error {
 {{- end}}{{end}}
 {{- end}}
 	return nil
+}
+
+// Clone returns a shallow copy of x, with slices and maps duplicated so the
+// clone does not share backing storage with the original.
+func (x *{{$s.Name}}) Clone() *{{$s.Name}} {
+	if x == nil {
+		return nil
+	}
+	c := *x
+{{- range $s.Fields}}
+{{- if isSlice .}}
+	if x.{{.Name}} != nil {
+		c.{{.Name}} = append({{.GoType}}(nil), x.{{.Name}}...)
+	}
+{{- else if isMap .}}
+	if x.{{.Name}} != nil {
+		c.{{.Name}} = make({{.GoType}}, len(x.{{.Name}}))
+		for k, v := range x.{{.Name}} {
+			c.{{.Name}}[k] = v
+		}
+	}
+{{- end}}
+{{- end}}
+	return &c
+}
+
+// String returns a readable representation of x.
+func (x *{{$s.Name}}) String() string {
+	if x == nil {
+		return "{{$s.Name}}(nil)"
+	}
+	var b strings.Builder
+	b.WriteString("{{$s.Name}}{")
+{{- range $i, $f := $s.Fields}}
+	{{- if $i}}
+	b.WriteString(", ")
+	{{- end}}
+	b.WriteString("{{$f.Name}}: ")
+	fmt.Fprintf(&b, "{{if isString $f}}%q{{else}}%v{{end}}", x.{{$f.Name}})
+{{- end}}
+	b.WriteString("}")
+	return b.String()
 }
 {{end}}`

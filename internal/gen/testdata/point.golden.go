@@ -4,6 +4,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 )
 
 // ---- Point ----
@@ -54,4 +55,48 @@ func (x *Point) Validate() error {
 		return fmt.Errorf("Y is required")
 	}
 	return nil
+}
+
+// Clone returns a shallow copy of x, with slices and maps duplicated so the
+// clone does not share backing storage with the original.
+func (x *Point) Clone() *Point {
+	if x == nil {
+		return nil
+	}
+	c := *x
+	if x.Tags != nil {
+		c.Tags = append([]string(nil), x.Tags...)
+	}
+	return &c
+}
+
+// String returns a readable representation of x.
+func (x *Point) String() string {
+	if x == nil {
+		return "Point(nil)"
+	}
+	var b strings.Builder
+	b.WriteString("Point{")
+	b.WriteString("X: ")
+	fmt.Fprintf(&b, "%v", x.X)
+	b.WriteString(", ")
+	b.WriteString("Y: ")
+	fmt.Fprintf(&b, "%v", x.Y)
+	b.WriteString(", ")
+	b.WriteString("Name: ")
+	fmt.Fprintf(&b, "%q", x.Name)
+	b.WriteString(", ")
+	b.WriteString("ID: ")
+	fmt.Fprintf(&b, "%v", x.ID)
+	b.WriteString(", ")
+	b.WriteString("Tags: ")
+	fmt.Fprintf(&b, "%v", x.Tags)
+	b.WriteString(", ")
+	b.WriteString("secret: ")
+	fmt.Fprintf(&b, "%q", x.secret)
+	b.WriteString(", ")
+	b.WriteString("Ignore: ")
+	fmt.Fprintf(&b, "%v", x.Ignore)
+	b.WriteString("}")
+	return b.String()
 }

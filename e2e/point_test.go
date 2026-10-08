@@ -77,3 +77,35 @@ func TestNewPoint_EmptyEnumAllowed(t *testing.T) {
 		t.Fatalf("expected empty Kind, got %q", p.Kind)
 	}
 }
+
+func TestClone_Independence(t *testing.T) {
+	p, err := NewPoint(WithY(1), WithTags([]string{"a", "b"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := p.Clone()
+	c.Tags[0] = "z"
+	if p.Tags[0] != "a" {
+		t.Fatalf("clone shares backing array with original: p.Tags=%v c.Tags=%v", p.Tags, c.Tags)
+	}
+}
+
+func TestString_ContainsFields(t *testing.T) {
+	p, _ := NewPoint(WithY(1), WithName("hi"))
+	s := p.String()
+	for _, want := range []string{"Point{", "X: 0", "Y: 1", `Name: "hi"`} {
+		if !strings.Contains(s, want) {
+			t.Errorf("String() = %q; missing %q", s, want)
+		}
+	}
+}
+
+func TestClone_Nil(t *testing.T) {
+	var p *Point
+	if p.Clone() != nil {
+		t.Fatal("Clone of nil should be nil")
+	}
+	if p.String() != "Point(nil)" {
+		t.Fatalf("String of nil: got %q", p.String())
+	}
+}
