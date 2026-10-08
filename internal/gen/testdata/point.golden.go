@@ -2,6 +2,10 @@
 
 package models
 
+import (
+	"fmt"
+)
+
 // ---- Point ----
 
 // PointOption configures a Point.
@@ -27,8 +31,9 @@ func WithTags(v []string) PointOption {
 	return func(x *Point) { x.Tags = v }
 }
 
-// NewPoint constructs a Point with defaults applied, then options.
-func NewPoint(opts ...PointOption) *Point {
+// NewPoint constructs a Point with defaults applied, then options,
+// then validates the result.
+func NewPoint(opts ...PointOption) (*Point, error) {
 	x := &Point{
 		X:    0,
 		Y:    0,
@@ -37,5 +42,16 @@ func NewPoint(opts ...PointOption) *Point {
 	for _, opt := range opts {
 		opt(x)
 	}
-	return x
+	if err := x.Validate(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// Validate checks the invariants declared by `moo:` tags on Point.
+func (x *Point) Validate() error {
+	if x.Y == 0 {
+		return fmt.Errorf("Y is required")
+	}
+	return nil
 }

@@ -2,6 +2,11 @@
 
 package e2e
 
+import (
+	"fmt"
+	"net/mail"
+)
+
 // ---- Point ----
 
 // PointOption configures a Point.
@@ -22,13 +27,24 @@ func WithName(v string) PointOption {
 	return func(x *Point) { x.Name = v }
 }
 
+// WithEmail sets the Email field.
+func WithEmail(v string) PointOption {
+	return func(x *Point) { x.Email = v }
+}
+
+// WithKind sets the Kind field.
+func WithKind(v string) PointOption {
+	return func(x *Point) { x.Kind = v }
+}
+
 // WithTags sets the Tags field.
 func WithTags(v []string) PointOption {
 	return func(x *Point) { x.Tags = v }
 }
 
-// NewPoint constructs a Point with defaults applied, then options.
-func NewPoint(opts ...PointOption) *Point {
+// NewPoint constructs a Point with defaults applied, then options,
+// then validates the result.
+func NewPoint(opts ...PointOption) (*Point, error) {
 	x := &Point{
 		X:    0,
 		Y:    0,
@@ -37,5 +53,34 @@ func NewPoint(opts ...PointOption) *Point {
 	for _, opt := range opts {
 		opt(x)
 	}
-	return x
+	if err := x.Validate(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// Validate checks the invariants declared by `moo:` tags on Point.
+func (x *Point) Validate() error {
+	if x.Y == 0 {
+		return fmt.Errorf("Y is required")
+	}
+	if len(x.Name) < 1 {
+		return fmt.Errorf("Name length must be >= 1")
+	}
+	if len(x.Name) > 64 {
+		return fmt.Errorf("Name length must be <= 64")
+	}
+	if x.Email != "" {
+		if _, err := mail.ParseAddress(x.Email); err != nil {
+			return fmt.Errorf("Email must be a valid email: %w", err)
+		}
+	}
+	if x.Kind != "" {
+		switch x.Kind {
+		case "a", "b", "c":
+		default:
+			return fmt.Errorf("Kind must be one of: a|b|c")
+		}
+	}
+	return nil
 }
